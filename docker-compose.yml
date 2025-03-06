@@ -1,0 +1,18 @@
+services:
+  db:
+    container_name: db
+    image: postgres:latest # можно просто postgres - также будет браться последняя стабильная версия.
+    restart: always # Контейнер будет перезапускаться всегда
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - 5432:5432
+    networks:
+      - custom
+
+
+networks:
+  custom:
+    driver: bridge
