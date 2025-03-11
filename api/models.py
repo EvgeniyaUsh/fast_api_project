@@ -42,3 +42,7 @@ class CreateUser(BaseModel):
                 status_code=422, detail="Surname contains invalid characters."
             )
         return val
+
+
+class DeleteUser(BaseModel):
+    deleted_user_id: uuid.UUID
