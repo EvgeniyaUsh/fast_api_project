@@ -27,3 +27,25 @@ class UserDAL:
         deleted_user_id = result.fetchone()
         if deleted_user_id is not None:
             return deleted_user_id[0]
+
+    async def update_user(self, user_id: UUID, **kwargs) -> Union[UUID, None]:
+        query = (
+            update(User)
+            .where(and_(user_id == User.user_id, User.is_active == True))
+            .values(kwargs)
+            .returning(User.user_id)
+        )
+        result = await self.db_session.execute(query)
+        user_id = result.fetchone()
+        if user_id is not None:
+            return user_id[0]
+
+    async def get_user_by_id(self, user_id: UUID) -> Union[UUID, None]:
+        query = select(User).where(
+            and_(User.user_id == user_id, User.is_active == True)
+        )
+
+        result = await self.db_session.execute(query)
+        user = result.fetchone()
+        if user:
+            return user[0]
