@@ -11,6 +11,6 @@
 * В alembic.ini нужно задать адрес базы данных, в которую будем катать миграции.
 * Дальше идём в папку с миграциями и открываем env.py, там вносим изменения в блок, где написано
 `from myapp import mymodel`
-* Дальше вводим: alembic revision --autogenerate -m "comment" - делается при любых изменениях моделей
+* Дальше вводим: `alembic revision --autogenerate -m "comment"` - делается при любых изменениях моделей
 * Будет создана миграция
-* Дальше вводим: alembic upgrade heads
+* Дальше вводим: `alembic upgrade heads`
