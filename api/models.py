@@ -27,6 +27,7 @@ class CreateUser(BaseModel):
     name: str
     surname: str
     email: EmailStr
+    password: str
 
     @field_validator("name")
     def validate_name(cls, val):
@@ -43,6 +44,11 @@ class CreateUser(BaseModel):
                 status_code=422, detail="Surname contains invalid characters."
             )
         return val
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
 
 class UpdateUser(BaseModel):
