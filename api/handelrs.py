@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.models import CreateUser, ShowUser, UpdateUser, UserID
 from db.dals import UserDAL
 from db.session import get_db
+from hashing import Hasher
 
 user_router = APIRouter()
 
@@ -16,7 +17,10 @@ async def _create_user(body: CreateUser, db) -> ShowUser:
         async with session.begin():
             user_dal = UserDAL(session)
             user = await user_dal.create_user(
-                name=body.name, surname=body.surname, email=body.email
+                name=body.name,
+                surname=body.surname,
+                email=body.email,
+                hashed_password=Hasher.get_password_hash(body.password),
             )
             return ShowUser(
                 user_id=user.user_id,
@@ -60,7 +64,11 @@ async def _get_user_by_id(user_id: UUID, db) -> Union[UUID, None]:
 
 @user_router.post("/", response_model=ShowUser)
 async def create_user(body: CreateUser, db: AsyncSession = Depends(get_db)) -> ShowUser:
-    return await _create_user(body, db)
+    try:
+        user = await _create_user(body, db)
+    except:
+        raise HTTPException(status_code=404, detail="User doesn't create.")
+    return user
 
 
 @user_router.get("/", response_model=ShowUser)
