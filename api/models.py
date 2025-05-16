@@ -1,18 +1,22 @@
 import re
 import uuid
-from typing import Annotated, Optional
+from typing import Annotated, List
 
 from fastapi import HTTPException
-from pydantic import BaseModel, EmailStr, Field, StringConstraints, field_validator
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    Field,
+    StringConstraints,
+    field_validator,
+    ConfigDict,
+)
 
 LETTER_MATCH = re.compile(r"^[а-яА-Яa-zA-Z\-]+$")
 
 
 class ORNModeModel(BaseModel):
-    class Config:
-        """Converts orm objects to dictionaries or json."""
-
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ShowUser(ORNModeModel):
@@ -44,6 +48,38 @@ class CreateUser(BaseModel):
                 status_code=422, detail="Surname contains invalid characters."
             )
         return val
+
+
+class CreateTag(ORNModeModel):
+    name: str
+
+
+class ShowTag(ORNModeModel):
+    id: int
+    name: str
+
+
+class CreateDish(BaseModel):
+    name_dish: str
+    description: str
+    calories: float
+    proteins: float
+    fats: float
+    carbohydrates: float
+    type: str
+    tags: List[str]
+
+
+class ShowDishes(ORNModeModel):
+    id: int
+    name_dish: str
+    description: str
+    calories: float
+    proteins: float
+    fats: float
+    carbohydrates: float
+    type: str
+    tags: List[str]
 
 
 class Token(BaseModel):
