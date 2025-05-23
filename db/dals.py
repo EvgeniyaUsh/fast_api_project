@@ -1,9 +1,10 @@
 from typing import Union
 from uuid import UUID
 
-from sqlalchemy import and_, select, update
+from sqlalchemy import and_, select, update, asc, desc, func
 
 from db.models import User, Dishes, Tag
+from sqlalchemy.orm import joinedload
 
 
 class UserDAL:
@@ -62,6 +63,14 @@ class UserDAL:
             return user_row[0]
 
 
+SORTABLE_FIELDS = {
+    "calories": Dishes.calories,
+    "protein": Dishes.proteins,
+    "fat": Dishes.fats,
+    "carbs": Dishes.carbohydrates,
+}
+
+
 class DishDAL:
     def __init__(self, db_session):
         self.db_session = db_session
@@ -98,6 +107,48 @@ class DishDAL:
         dish = result.fetchone()
         if dish:
             return dish[0]
+
+    async def get_dishes_by_type(
+        self, type, sort_by, tags, sort_order, page, size
+    ) -> Union[int, None]:
+        offset = (page - 1) * size
+
+        sort_column = SORTABLE_FIELDS.get(sort_by, Dishes.calories)
+        order_by = desc(sort_column) if sort_order == "desc" else asc(sort_column)
+
+        # # базовый select
+        # query = (
+        #     select(Dishes)
+        #     .options(joinedload(Dishes.tags))
+        #     .where(Dishes.type == type)
+        #     .order_by(order_by)
+        #     .offset(offset)
+        #     .limit(size)
+        # )
+
+        query = (
+            select(Dishes)
+            .join(Dishes.tags)  # Добавляем join по тегам для фильтра
+            .options(joinedload(Dishes.tags))
+            .where(Dishes.type == type)
+            .where(Dishes.tags.any(Tag.name.in_(tags)))  # фильтр по тегам
+            .order_by(order_by)
+            .offset(offset)
+            .limit(size)
+        )
+
+        # отдельный подсчёт общего количества
+        count_query = select(func.count()).select_from(
+            select(Dishes).where(Dishes.type == type).subquery()
+        )
+
+        query = await self.db_session.execute(query)
+        dishes = query.unique().scalars().all()
+
+        count_result = await self.db_session.execute(count_query)
+        total = count_result.scalar_one()
+
+        return total, page, size, dishes
 
 
 class TagDAL:
