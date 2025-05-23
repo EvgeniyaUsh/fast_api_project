@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from api.models import CreateDish, ShowDishes, ShowTag
+from api.models import CreateDish, ShowDishes, ShowTag, PaginatedDishes
 from db.dals import DishDAL, TagDAL
 from db.session import get_db
+from db.models import Dishes
 
 from typing import Union
 from uuid import UUID
@@ -62,6 +63,27 @@ async def _get_dish_by_id(id: int, db) -> Union[UUID, None]:
                 )
 
 
+async def _get_dishes_by_type(
+    type, sort_by, tags, sort_order, page, size, db
+) -> Union[UUID, None]:
+    async with db as session:
+        async with session.begin():
+            dish_dal = DishDAL(session)
+            total, page, size, dishes = await dish_dal.get_dishes_by_type(
+                type, sort_by, tags, sort_order, page, size
+            )
+            if dishes is not None:
+                return PaginatedDishes(
+                    total=total,
+                    page=page,
+                    size=size,
+                    dishes=[
+                        ShowDishes.model_validate(d, from_attributes=True)
+                        for d in dishes
+                    ],
+                )
+
+
 @dish_router.post("/", response_model=ShowDishes)
 async def create_user(
     body: CreateDish, db: AsyncSession = Depends(get_db)
@@ -74,9 +96,25 @@ async def create_user(
     return user
 
 
-@dish_router.get("/", response_model=ShowDishes)
-async def get_user_by_id(id: int, db: AsyncSession = Depends(get_db)) -> ShowDishes:
-    dish = await _get_dish_by_id(id, db)
+# @dish_router.get("/", response_model=ShowDishes)
+# async def get_user_by_id(id: int, db: AsyncSession = Depends(get_db)) -> ShowDishes:
+#     dish = await _get_dish_by_id(id, db)
+#     if dish is None:
+#         raise HTTPException(status_code=404, detail="Dish with id: {id} not found.")
+#     return dish
+
+
+@dish_router.get("/", response_model=PaginatedDishes)
+async def get_dishes_by_type(
+    type: str,
+    sort_by: str,
+    tags: list[str] = Query(default=[], style="form", explode=True),
+    sort_order: str = Query("asc", regex="^(asc|desc)$"),
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+) -> PaginatedDishes:
+    dish = await _get_dishes_by_type(type, sort_by, tags, sort_order, page, size, db)
     if dish is None:
         raise HTTPException(status_code=404, detail="Dish with id: {id} not found.")
     return dish

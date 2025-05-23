@@ -1,6 +1,7 @@
 import re
 import uuid
 from typing import Annotated, List
+from datetime import datetime
 
 from fastapi import HTTPException
 from pydantic import (
@@ -58,6 +59,8 @@ class ShowTag(ORNModeModel):
     id: int
     name: str
 
+    model_config = {"from_attributes": True}
+
 
 class CreateDish(BaseModel):
     name_dish: str
@@ -70,7 +73,7 @@ class CreateDish(BaseModel):
     tags: List[str]
 
 
-class ShowDishes(ORNModeModel):
+class ShowDishes(BaseModel):
     id: int
     name_dish: str
     description: str
@@ -79,7 +82,19 @@ class ShowDishes(ORNModeModel):
     fats: float
     carbohydrates: float
     type: str
-    tags: List[str]
+    created_at: datetime
+    tags: List[ShowTag]
+
+    model_config = {"from_attributes": True}
+
+
+class PaginatedDishes(BaseModel):
+    total: int
+    page: int
+    size: int
+    dishes: List[ShowDishes]
+
+    model_config = {"from_attributes": True}
 
 
 class Token(BaseModel):
