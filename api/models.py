@@ -63,7 +63,7 @@ class ShowTag(ORNModeModel):
 
 
 class CreateDish(BaseModel):
-    name_dish: str
+    name: str
     description: str
     calories: float
     proteins: float
@@ -75,7 +75,7 @@ class CreateDish(BaseModel):
 
 class ShowDishes(BaseModel):
     id: int
-    name_dish: str
+    name: Annotated[str, StringConstraints(min_length=2, max_length=50)]
     description: str
     calories: float
     proteins: float
@@ -83,7 +83,7 @@ class ShowDishes(BaseModel):
     carbohydrates: float
     type: str
     created_at: datetime
-    tags: List[ShowTag]
+    tags: List[str]
 
     model_config = {"from_attributes": True}
 

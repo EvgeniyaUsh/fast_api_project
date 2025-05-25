@@ -77,7 +77,7 @@ class DishDAL:
 
     async def create_dish(
         self,
-        name_dish: str,
+        name: str,
         description: str,
         calories: float,
         proteins: float,
@@ -87,7 +87,7 @@ class DishDAL:
         tags: list[str],
     ) -> Dishes:
         created_dish = Dishes(
-            name_dish=name_dish,
+            name=name,
             description=description,
             calories=calories,
             proteins=proteins,
@@ -109,12 +109,12 @@ class DishDAL:
             return dish[0]
 
     async def get_dishes_by_type(
-        self, type, sort_by, tags, sort_order, page, size
+        self, type, nutrition_sort, tags, sort_order, page, size
     ) -> Union[int, None]:
         offset = (page - 1) * size
 
-        sort_column = SORTABLE_FIELDS.get(sort_by, Dishes.calories)
-        order_by = desc(sort_column) if sort_order == "desc" else asc(sort_column)
+        sort_column = SORTABLE_FIELDS.get(nutrition_sort, Dishes.calories)
+        order_by = desc(sort_column) if sort_order == "descending" else asc(sort_column)
 
         # # базовый select
         # query = (
