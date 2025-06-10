@@ -70,7 +70,7 @@ class CreateDish(BaseModel):
     fats: float
     carbohydrates: float
     type: str
-    tags: List[str]
+    tags: List[str] = []
 
 
 class ShowDishes(BaseModel):
@@ -83,15 +83,19 @@ class ShowDishes(BaseModel):
     carbohydrates: float
     type: str
     created_at: datetime
-    tags: List[str]
+    tags: List[str] = []
 
     model_config = {"from_attributes": True}
 
 
+class Pagination(BaseModel):
+    currentPage: int
+    totalPages: int
+    totalEntries: int
+
+
 class PaginatedDishes(BaseModel):
-    total: int
-    page: int
-    size: int
+    pagination: Pagination
     dishes: List[ShowDishes]
 
     model_config = {"from_attributes": True}

@@ -1,13 +1,8 @@
 from models.base import Base
 from sqlalchemy import (
-    Boolean,
     Column,
-    String,
-    Integer,
     Text,
     Float,
-    DateTime,
-    func,
     Table,
     ForeignKey,
 )
