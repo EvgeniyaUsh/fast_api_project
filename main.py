@@ -5,8 +5,26 @@ from fastapi.routing import APIRouter
 from api.handelrs import user_router
 from api.login_handler import login_router
 from api.dish_handler import dish_router
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi import Request
+from fastapi import FastAPI
+import logging
+
+logger = logging.getLogger("uvicorn.error")
+
 
 app = FastAPI(title="fastapi_project")
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.error(f"Validation error: {exc}")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body": exc.body},
+    )
+
 
 api_name = "/api"
 
@@ -20,4 +38,6 @@ app.include_router(main_router)
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="192.168.0.188", port=8000)
+    uvicorn.run(
+        "main:app", host="192.168.0.131", port=8000, reload=True, log_level="debug"
+    )

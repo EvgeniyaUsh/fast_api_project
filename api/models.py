@@ -63,19 +63,19 @@ class ShowTag(ORNModeModel):
 
 
 class CreateDish(BaseModel):
-    name_dish: str
+    name: str
     description: str
     calories: float
     proteins: float
     fats: float
     carbohydrates: float
     type: str
-    tags: List[str]
+    tags: List[str] = []
 
 
 class ShowDishes(BaseModel):
     id: int
-    name_dish: str
+    name: Annotated[str, StringConstraints(min_length=2, max_length=50)]
     description: str
     calories: float
     proteins: float
@@ -83,15 +83,19 @@ class ShowDishes(BaseModel):
     carbohydrates: float
     type: str
     created_at: datetime
-    tags: List[ShowTag]
+    tags: List[str] = []
 
     model_config = {"from_attributes": True}
 
 
+class Pagination(BaseModel):
+    currentPage: int
+    totalPages: int
+    totalEntries: int
+
+
 class PaginatedDishes(BaseModel):
-    total: int
-    page: int
-    size: int
+    pagination: Pagination
     dishes: List[ShowDishes]
 
     model_config = {"from_attributes": True}

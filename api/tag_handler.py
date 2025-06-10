@@ -18,7 +18,7 @@ async def _create_tag(body: CreateTag, db) -> ShowTag:
             tag_objs = TagDAL(session)
 
             dish = await dish_dal.create_dish(
-                name_dish=body.name_dish,
+                name=body.name,
                 description=body.description,
                 calories=body.calories,
                 proteins=body.proteins,
@@ -29,7 +29,7 @@ async def _create_tag(body: CreateTag, db) -> ShowTag:
             )
             return ShowDishes(
                 id=dish.id,
-                name_dish=dish.name_dish,
+                name=dish.name,
                 description=dish.description,
                 calories=dish.calories,
                 proteins=dish.proteins,
@@ -48,7 +48,7 @@ async def _get_dish_by_id(id: int, db) -> Union[UUID, None]:
             if dish is not None:
                 return ShowDishes(
                     id=dish.id,
-                    name_dish=dish.name_dish,
+                    name=dish.name,
                     description=dish.description,
                     calories=dish.calories,
                     proteins=dish.proteins,

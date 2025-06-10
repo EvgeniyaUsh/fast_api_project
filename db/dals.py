@@ -1,10 +1,13 @@
 from typing import Union
 from uuid import UUID
-
+import math
 from sqlalchemy import and_, select, update, asc, desc, func
-
+from api.models import CreateDish, ShowDishes, PaginatedDishes, Pagination
 from db.models import User, Dishes, Tag
 from sqlalchemy.orm import joinedload
+import logging
+
+logger = logging.getLogger("uvicorn.error")
 
 
 class UserDAL:
@@ -64,10 +67,10 @@ class UserDAL:
 
 
 SORTABLE_FIELDS = {
-    "calories": Dishes.calories,
-    "protein": Dishes.proteins,
-    "fat": Dishes.fats,
-    "carbs": Dishes.carbohydrates,
+    "CALORIES": Dishes.calories,
+    "PROTEINS": Dishes.proteins,
+    "FATS": Dishes.fats,
+    "CARBOHYDRATES": Dishes.carbohydrates,
 }
 
 
@@ -77,7 +80,7 @@ class DishDAL:
 
     async def create_dish(
         self,
-        name_dish: str,
+        name: str,
         description: str,
         calories: float,
         proteins: float,
@@ -87,7 +90,7 @@ class DishDAL:
         tags: list[str],
     ) -> Dishes:
         created_dish = Dishes(
-            name_dish=name_dish,
+            name=name,
             description=description,
             calories=calories,
             proteins=proteins,
@@ -108,13 +111,24 @@ class DishDAL:
         if dish:
             return dish[0]
 
+    async def get_dish_by_name_and_calories(self, name, calories):
+        query = select(Dishes).where(
+            and_(Dishes.name == name, Dishes.calories == calories)
+        )
+        result = await self.db_session.execute(query)
+        dish = result.fetchone()
+        logger.info(f"dishdish - {dish[0]}")
+        if dish:
+            return True
+        return False
+
     async def get_dishes_by_type(
-        self, type, sort_by, tags, sort_order, page, size
+        self, type, nutrition_sort, tags, sort_order, page, size
     ) -> Union[int, None]:
         offset = (page - 1) * size
 
-        sort_column = SORTABLE_FIELDS.get(sort_by, Dishes.calories)
-        order_by = desc(sort_column) if sort_order == "desc" else asc(sort_column)
+        sort_column = SORTABLE_FIELDS.get(nutrition_sort, Dishes.calories)
+        order_by = desc(sort_column) if sort_order == "DESCENDING" else asc(sort_column)
 
         # # базовый select
         # query = (
@@ -128,7 +142,7 @@ class DishDAL:
 
         query = (
             select(Dishes)
-            .join(Dishes.tags)  # Добавляем join по тегам для фильтра
+            # .join(Dishes.tags)  # Добавляем join по тегам для фильтра
             .options(joinedload(Dishes.tags))
             .where(Dishes.type == type)
             .where(Dishes.tags.any(Tag.name.in_(tags)))  # фильтр по тегам
@@ -148,7 +162,13 @@ class DishDAL:
         count_result = await self.db_session.execute(count_query)
         total = count_result.scalar_one()
 
-        return total, page, size, dishes
+        total_pages = math.ceil(total / size)
+
+        pagination = Pagination(
+            currentPage=page, totalPages=total_pages, totalEntries=total
+        )
+
+        return pagination, dishes
 
 
 class TagDAL:
