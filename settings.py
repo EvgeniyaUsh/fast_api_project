@@ -2,6 +2,7 @@ from envparse import Env
 
 env = Env()
 
+# psql -U postgres -d postgres -h 0.0.0.0 -p 5432
 PROJECT_DATABESE_URL = env.str(
     "PROJECT_DATABESE_URL",
     default="postgresql+asyncpg://postgres:postgres@0.0.0.0:5432/postgres",
