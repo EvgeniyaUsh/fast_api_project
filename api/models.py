@@ -74,7 +74,7 @@ class CreateDish(BaseModel):
 
 
 class ShowDishes(BaseModel):
-    id: int
+    id: int | None
     name: Annotated[str, StringConstraints(min_length=2, max_length=50)]
     description: str
     calories: float

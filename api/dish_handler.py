@@ -58,7 +58,7 @@ async def _create_dish(body: CreateDish, db) -> ShowDishes | None:
             )
 
 
-async def _get_dish_by_id(id: int, db) -> Union[UUID, None]:
+async def _get_dish_by_id(id: int, db) -> ShowDishes | None:
     async with db as session:
         async with session.begin():
             dish_dal = DishDAL(session)
@@ -75,13 +75,14 @@ async def _get_dish_by_id(id: int, db) -> Union[UUID, None]:
                     fats=dish.fats,
                     carbohydrates=dish.carbohydrates,
                     type=dish.type,
+                    created_at=dish.created_at,
                     tags=dish.tags,
                 )
 
 
 async def _get_dishes_by_type(
     type, nutrition_sort, tags, sort_order, page, page_size, db
-) -> Union[UUID, None]:
+) -> PaginatedDishes | None:
     async with db as session:
         async with session.begin():
             dish_dal = DishDAL(session)
