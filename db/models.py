@@ -41,8 +41,8 @@ class Tag(Base):
 dishes_tags = Table(
     "dishes_tags",
     Base.metadata,
-    Column("dish_id", ForeignKey("dishes.id"), primary_key=True),
-    Column("tag_id", ForeignKey("tags.id"), primary_key=True),
+    Column("dish_id", ForeignKey("dishes.id", ondelete="CASCADE"), primary_key=True),
+    Column("tag_id", ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True),
 )
 
 

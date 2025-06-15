@@ -2,7 +2,7 @@ from typing import Union
 from uuid import UUID
 import math
 from sqlalchemy import and_, select, update, asc, desc, func
-from api.models import CreateDish, ShowDishes, PaginatedDishes, Pagination
+from api.models import Pagination
 from db.models import User, Dishes, Tag
 from sqlalchemy.orm import joinedload
 import logging
@@ -87,7 +87,7 @@ class DishDAL:
         fats: float,
         carbohydrates: float,
         type: str,
-        tags: list[str],
+        tags: list[str] | None,
     ) -> Dishes:
         created_dish = Dishes(
             name=name,
@@ -101,6 +101,7 @@ class DishDAL:
         )
         self.db_session.add(created_dish)
         await self.db_session.flush()
+        logger.info(f"Created dish - {created_dish.name}")
         return created_dish
 
     async def get_dish_by_id(self, id: int) -> Union[int, None]:
@@ -117,14 +118,14 @@ class DishDAL:
         )
         result = await self.db_session.execute(query)
         dish = result.fetchone()
-        logger.info(f"dishdish - {dish[0]}")
+        logger.info(f"{dish}")
         if dish:
             return True
         return False
 
     async def get_dishes_by_type(
         self, type, nutrition_sort, tags, sort_order, page, size
-    ) -> Union[int, None]:
+    ):
         offset = (page - 1) * size
 
         sort_column = SORTABLE_FIELDS.get(nutrition_sort, Dishes.calories)
@@ -175,8 +176,8 @@ class TagDAL:
     def __init__(self, db_session):
         self.db_session = db_session
 
-    async def get_tags_by_ids(self, tags: list[str]) -> Union[int, None]:
+    async def get_tags_by_ids(self, tags: list[str]) -> list[str] | None:
         # Получаем теги по id
-        tags = select(Tag).where(Tag.name.in_(tags))
-        result = await self.db_session.execute(tags)
+        _tags = select(Tag).where(Tag.name.in_(tags))
+        result = await self.db_session.execute(_tags)
         return result.scalars().all()
