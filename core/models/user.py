@@ -1,0 +1,20 @@
+from sqlalchemy import (
+    String,
+)
+
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True)
+    name: Mapped[str] = mapped_column(String(50))
+    surname: Mapped[str] = mapped_column(String(50))
+    email: Mapped[str] = mapped_column(unique=True)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    hashed_password: Mapped[str]

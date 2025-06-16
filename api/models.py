@@ -21,7 +21,7 @@ class ORNModeModel(BaseModel):
 
 
 class ShowUser(ORNModeModel):
-    user_id: uuid.UUID
+    id: int
     name: str
     surname: str
     email: EmailStr
@@ -32,7 +32,6 @@ class CreateUser(BaseModel):
     name: str
     surname: str
     email: EmailStr
-    password: str
 
     @field_validator("name")
     def validate_name(cls, val):
