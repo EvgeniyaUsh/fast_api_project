@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from models.user import User
 
+
 class Tag(Base):
     __tablename__ = "tags"
 
@@ -58,6 +59,4 @@ class Dish(Base):
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
-    user: Mapped["User"] = relationship(
-        back_populates="dishes"
-    )
+    user: Mapped["User"] = relationship(back_populates="dishes")

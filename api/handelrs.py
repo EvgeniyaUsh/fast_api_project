@@ -30,7 +30,7 @@ async def _create_user(body: CreateUser, db) -> ShowUser:
             )
 
 
-async def _delete_user(user_id: UUID, db) -> Union[UUID, None]:
+async def _delete_user(user_id: int, db) -> Union[int, None]:
     async with db as session:
         async with session.begin():
             user_dal = UserDAL(session)
@@ -46,14 +46,14 @@ async def _update_user(user_id: UUID, body: UUID, db) -> Union[UUID, None]:
             return user_id
 
 
-async def _get_user_by_id(user_id: UUID, db) -> Union[UUID, None]:
+async def _get_user_by_id(user_id: int, db) -> ShowUser | None:
     async with db as session:
         async with session.begin():
             user_dal = UserDAL(session)
             user = await user_dal.get_user_by_id(user_id=user_id)
             if user is not None:
                 return ShowUser(
-                    user_id=user.user_id,
+                    id=user.id,
                     name=user.name,
                     surname=user.surname,
                     email=user.email,
