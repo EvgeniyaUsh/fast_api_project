@@ -45,6 +45,7 @@ async def _create_dish(body: CreateDish, db) -> ShowDishes | None:
                 carbohydrates=body.carbohydrates,
                 type=body.type,
                 tags=tags,
+                user_id=body.user_id,
             )
             return ShowDishes(
                 id=dish.id,
@@ -57,6 +58,7 @@ async def _create_dish(body: CreateDish, db) -> ShowDishes | None:
                 type=dish.type,
                 created_at=dish.created_at,
                 tags=[tag.name for tag in tags],
+                user_id=dish.user_id,
             )
 
 
@@ -133,7 +135,9 @@ async def get_dishes_by_type(
     page_size: int = Query(10, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedDishes:
-    logger.info(f"type, nutrition_sort, tags, sort_order, page, page_size, db - {type, nutrition_sort, tags, sort_order, page, page_size, db}")
+    logger.info(
+        f"type, nutrition_sort, tags, sort_order, page, page_size, db - {type, nutrition_sort, tags, sort_order, page, page_size}"
+    )
     dish = await _get_dishes_by_type(
         type, nutrition_sort, tags, sort_order, page, page_size, db
     )

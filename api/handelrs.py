@@ -71,7 +71,7 @@ async def create_user(body: CreateUser, db: AsyncSession = Depends(get_db)) -> S
 
 
 @user_router.get("/", response_model=ShowUser)
-async def get_user_by_id(user_id: UUID, db: AsyncSession = Depends(get_db)) -> ShowUser:
+async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)) -> ShowUser:
     user = await _get_user_by_id(user_id, db)
     if user is None:
         raise HTTPException(

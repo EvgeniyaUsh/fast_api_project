@@ -1,5 +1,4 @@
 from typing import Union
-from uuid import UUID
 import math
 from sqlalchemy import and_, select, update, asc, desc, func
 from api.models import Pagination
@@ -20,7 +19,7 @@ class UserDAL:
         await self.db_session.flush()
         return created_user
 
-    async def delete_user(self, user_id: int) -> Union[int, None]:
+    async def delete_user(self, user_id: int) -> User | None:
         query = (
             update(User)
             .where(and_(User.id == user_id, User.is_active == True))
@@ -32,32 +31,32 @@ class UserDAL:
         if deleted_user_id is not None:
             return deleted_user_id[0]
 
-    async def update_user(self, user_id: UUID, **kwargs) -> Union[UUID, None]:
+    async def update_user(self, user_id: int, **kwargs) -> int | None:
         query = (
             update(User)
-            .where(and_(user_id == User.user_id, User.is_active == True))
+            .where(and_(User.id == user_id, User.is_active == True))
             .values(kwargs)
-            .returning(User.user_id)
+            .returning(User.id)
         )
         result = await self.db_session.execute(query)
-        user_id = result.fetchone()
+        user_id = result.scalar_one_or_none()
         if user_id is not None:
-            return user_id[0]
+            return user_id
 
-    async def get_user_by_id(self, user_id: int):
+    async def get_user_by_id(self, user_id: int) -> User | None:
         query = select(User).where(and_(User.id == user_id, User.is_active == True))
 
         result = await self.db_session.execute(query)
-        user = result.fetchone()
+        user = result.scalar_one_or_none()
         if user:
-            return user[0]
+            return user
 
-    async def get_user_by_email(self, email: str) -> Union[User, None]:
+    async def get_user_by_email(self, email: str) -> User | None:
         query = select(User).where(User.email == email)
-        res = await self.db_session.execute(query)
-        user_row = res.fetchone()
-        if user_row is not None:
-            return user_row[0]
+        result = await self.db_session.execute(query)
+        user = result.scalar_one_or_none()
+        if user is not None:
+            return user
 
 
 SORTABLE_FIELDS = {
@@ -82,6 +81,7 @@ class DishDAL:
         carbohydrates: float,
         type: str,
         tags: list[str] | None,
+        user_id: int,
     ) -> Dishes:
         created_dish = Dishes(
             name=name,
@@ -92,6 +92,7 @@ class DishDAL:
             carbohydrates=carbohydrates,
             type=type,
             tags=tags,
+            user_id=user_id,
         )
         self.db_session.add(created_dish)
         await self.db_session.flush()
