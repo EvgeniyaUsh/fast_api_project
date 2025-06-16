@@ -14,12 +14,8 @@ class UserDAL:
     def __init__(self, db_session):
         self.db_session = db_session
 
-    async def create_user(
-        self, name: str, surname: str, email: str, hashed_password: str
-    ) -> User:
-        created_user = User(
-            name=name, surname=surname, email=email, hashed_password=hashed_password
-        )
+    async def create_user(self, name: str, surname: str, email: str) -> User:
+        created_user = User(name=name, surname=surname, email=email)
         self.db_session.add(created_user)
         await self.db_session.flush()
         return created_user
@@ -146,11 +142,29 @@ class DishDAL:
             # .join(Dishes.tags)  # Добавляем join по тегам для фильтра
             .options(joinedload(Dishes.tags))
             .where(Dishes.type == type)
-            .where(Dishes.tags.any(Tag.name.in_(tags)))  # фильтр по тегам
-            .order_by(order_by)
-            .offset(offset)
-            .limit(size)
         )
+
+        if tags:
+            query = (
+                query.where(Dishes.tags.any(Tag.name.in_(tags)))
+                .order_by(order_by)
+                .offset(offset)
+                .limit(size)
+            )
+
+        else:
+            query = query.order_by(order_by).offset(offset).limit(size)
+
+        # query = (
+        #     select(Dishes)
+        #     # .join(Dishes.tags)  # Добавляем join по тегам для фильтра
+        #     .options(joinedload(Dishes.tags))
+        #     .where(Dishes.type == type)
+        #     .where(Dishes.tags.any(Tag.name.in_(tags)))  # фильтр по тегам
+        #     .order_by(order_by)
+        #     .offset(offset)
+        #     .limit(size)
+        # )
 
         # отдельный подсчёт общего количества
         count_query = select(func.count()).select_from(

@@ -1,5 +1,3 @@
-import uuid
-
 from sqlalchemy import (
     Boolean,
     Column,
@@ -12,8 +10,8 @@ from sqlalchemy import (
     Table,
     ForeignKey,
 )
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase, relationship
+import sqlalchemy
+from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
@@ -23,45 +21,55 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "users"
 
-    user_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4())
-    name = Column(String, nullable=False)
-    surname = Column(String, nullable=False)
-    email = Column(String, nullable=False, unique=True)
-    is_active = Column(Boolean(), default=True)
-    hashed_password = Column(String, nullable=False)
+    id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True)
+    name: Mapped[str] = mapped_column(String(50))
+    surname: Mapped[str] = mapped_column(String(50))
+    email: Mapped[str] = mapped_column(unique=True)
+    is_active: Mapped[bool] = mapped_column(default=True)
 
 
 class Tag(Base):
     __tablename__ = "tags"
-    id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=False, unique=True)
+    created_at = mapped_column(
+        sqlalchemy.DateTime(timezone=True),
+        server_default=sqlalchemy.sql.func.now(),
+    )
 
 
 dishes_tags = Table(
     "dishes_tags",
     Base.metadata,
-    Column("dish_id", ForeignKey("dishes.id", ondelete="CASCADE"), primary_key=True),
-    Column("tag_id", ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True),
+    Column("dish_id", ForeignKey("dishes.id"), primary_key=True),
+    Column("tag_id", ForeignKey("tags.id"), primary_key=True),
 )
 
 
 class Dishes(Base):
     __tablename__ = "dishes"
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    description: Mapped[str] = mapped_column(Text)
 
-    name = Column(String, nullable=False)
-    description = Column(Text, nullable=False)
+    calories: Mapped[float] = mapped_column(Float(precision=2))
+    proteins: Mapped[float] = mapped_column(Float(precision=2))
+    fats: Mapped[float] = mapped_column(Float(precision=2))
+    carbohydrates: Mapped[float] = mapped_column(Float(precision=2))
+    type: Mapped[str]
 
-    calories = Column(Float, nullable=False)
-
-    proteins = Column(Float, nullable=False)
-    fats = Column(Float, nullable=False)
-    carbohydrates = Column(Float, nullable=False)
-    type = Column(String, nullable=False)
-
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = mapped_column(
+        sqlalchemy.DateTime(timezone=True),
+        server_default=sqlalchemy.sql.func.now(),
+        index=True,
+    )
+    updated_at = mapped_column(
+        sqlalchemy.DateTime(timezone=True),
+        server_default=sqlalchemy.sql.func.now(),
+    )
 
     tags = relationship("Tag", secondary=dishes_tags, backref="dishes")
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))

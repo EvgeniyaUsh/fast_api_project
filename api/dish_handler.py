@@ -6,7 +6,9 @@ from db.session import get_db
 from fastapi.exceptions import RequestValidationError
 from typing import Union
 from uuid import UUID
+import logging
 
+logger = logging.getLogger("uvicorn.error")
 dish_router = APIRouter()
 
 
@@ -131,9 +133,11 @@ async def get_dishes_by_type(
     page_size: int = Query(10, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedDishes:
+    logger.info(f"type, nutrition_sort, tags, sort_order, page, page_size, db - {type, nutrition_sort, tags, sort_order, page, page_size, db}")
     dish = await _get_dishes_by_type(
         type, nutrition_sort, tags, sort_order, page, page_size, db
     )
+    logger.info(f"dishdish - {dish}")
     if dish is None:
         raise HTTPException(status_code=404, detail="Dish with id: {id} not found.")
     return dish

@@ -52,3 +52,5 @@ class Dish(Base):
     )
 
     tags = relationship("Tag", secondary=dishes_tags, backref="dishes")
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
