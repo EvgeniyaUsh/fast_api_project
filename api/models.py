@@ -70,6 +70,7 @@ class CreateDish(BaseModel):
     carbohydrates: float
     type: str
     tags: List[str] = []
+    user_id: int
 
 
 class ShowDishes(BaseModel):
@@ -83,6 +84,7 @@ class ShowDishes(BaseModel):
     type: str
     created_at: datetime
     tags: List[str] = []
+    user_id: int
 
     model_config = {"from_attributes": True}
 

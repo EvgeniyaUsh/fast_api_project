@@ -1,10 +1,9 @@
 from typing import Union
-from uuid import UUID
 import math
 from sqlalchemy import and_, select, update, asc, desc, func
 from api.models import Pagination
 from db.models import User, Dishes, Tag
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 import logging
 
 logger = logging.getLogger("uvicorn.error")
@@ -20,46 +19,44 @@ class UserDAL:
         await self.db_session.flush()
         return created_user
 
-    async def delete_user(self, user_id: UUID) -> Union[UUID, None]:
+    async def delete_user(self, user_id: int) -> User | None:
         query = (
             update(User)
-            .where(and_(User.user_id == user_id, User.is_active == True))
+            .where(and_(User.id == user_id, User.is_active == True))
             .values(is_active=False)
-            .returning(User.user_id)
+            .returning(User.id)
         )
         result = await self.db_session.execute(query)
         deleted_user_id = result.fetchone()
         if deleted_user_id is not None:
             return deleted_user_id[0]
 
-    async def update_user(self, user_id: UUID, **kwargs) -> Union[UUID, None]:
+    async def update_user(self, user_id: int, **kwargs) -> int | None:
         query = (
             update(User)
-            .where(and_(user_id == User.user_id, User.is_active == True))
+            .where(and_(User.id == user_id, User.is_active == True))
             .values(kwargs)
-            .returning(User.user_id)
+            .returning(User.id)
         )
         result = await self.db_session.execute(query)
-        user_id = result.fetchone()
+        user_id = result.scalar_one_or_none()
         if user_id is not None:
-            return user_id[0]
+            return user_id
 
-    async def get_user_by_id(self, user_id: UUID) -> Union[UUID, None]:
-        query = select(User).where(
-            and_(User.user_id == user_id, User.is_active == True)
-        )
+    async def get_user_by_id(self, user_id: int) -> User | None:
+        query = select(User).where(and_(User.id == user_id, User.is_active == True))
 
         result = await self.db_session.execute(query)
-        user = result.fetchone()
+        user = result.scalar_one_or_none()
         if user:
-            return user[0]
+            return user
 
-    async def get_user_by_email(self, email: str) -> Union[User, None]:
+    async def get_user_by_email(self, email: str) -> User | None:
         query = select(User).where(User.email == email)
-        res = await self.db_session.execute(query)
-        user_row = res.fetchone()
-        if user_row is not None:
-            return user_row[0]
+        result = await self.db_session.execute(query)
+        user = result.scalar_one_or_none()
+        if user is not None:
+            return user
 
 
 SORTABLE_FIELDS = {
@@ -83,7 +80,8 @@ class DishDAL:
         fats: float,
         carbohydrates: float,
         type: str,
-        tags: list[str] | None,
+        tags: list[Tag],
+        user_id: int,
     ) -> Dishes:
         created_dish = Dishes(
             name=name,
@@ -94,6 +92,7 @@ class DishDAL:
             carbohydrates=carbohydrates,
             type=type,
             tags=tags,
+            user_id=user_id,
         )
         self.db_session.add(created_dish)
         await self.db_session.flush()
@@ -127,52 +126,28 @@ class DishDAL:
         sort_column = SORTABLE_FIELDS.get(nutrition_sort, Dishes.calories)
         order_by = desc(sort_column) if sort_order == "DESCENDING" else asc(sort_column)
 
-        # # базовый select
-        # query = (
-        #     select(Dishes)
-        #     .options(joinedload(Dishes.tags))
-        #     .where(Dishes.type == type)
-        #     .order_by(order_by)
-        #     .offset(offset)
-        #     .limit(size)
-        # )
-
         query = (
             select(Dishes)
-            # .join(Dishes.tags)  # Добавляем join по тегам для фильтра
-            .options(joinedload(Dishes.tags))
+            .options(selectinload(Dishes.tags))
             .where(Dishes.type == type)
+            .order_by(order_by)
+            .offset(offset)
+            .limit(size)
         )
+
+        # Подсчёт общего количества блюд по запросу
+        count_query = select(Dishes.id).where(Dishes.type == type)
 
         if tags:
-            query = (
-                query.where(Dishes.tags.any(Tag.name.in_(tags)))
-                .order_by(order_by)
-                .offset(offset)
-                .limit(size)
-            )
+            query = query.where(Dishes.tags.any(Tag.name.in_(tags)))
 
-        else:
-            query = query.order_by(order_by).offset(offset).limit(size)
+            count_query = count_query.where(Dishes.tags.any(Tag.name.in_(tags)))
 
-        # query = (
-        #     select(Dishes)
-        #     # .join(Dishes.tags)  # Добавляем join по тегам для фильтра
-        #     .options(joinedload(Dishes.tags))
-        #     .where(Dishes.type == type)
-        #     .where(Dishes.tags.any(Tag.name.in_(tags)))  # фильтр по тегам
-        #     .order_by(order_by)
-        #     .offset(offset)
-        #     .limit(size)
-        # )
+        dishes_result = await self.db_session.scalars(query)
+        dishes = dishes_result.all()
 
-        # отдельный подсчёт общего количества
-        count_query = select(func.count()).select_from(
-            select(Dishes).where(Dishes.type == type).subquery()
-        )
-
-        query = await self.db_session.execute(query)
-        dishes = query.unique().scalars().all()
+        # Подсчёт общего количества
+        count_query = select(func.count()).select_from(count_query.subquery())
 
         count_result = await self.db_session.execute(count_query)
         total = count_result.scalar_one()
@@ -190,7 +165,7 @@ class TagDAL:
     def __init__(self, db_session):
         self.db_session = db_session
 
-    async def get_tags_by_ids(self, tags: list[str]) -> list[str] | None:
+    async def get_tags_by_ids(self, tags: list[str]) -> list[Tag]:
         # Получаем теги по id
         _tags = select(Tag).where(Tag.name.in_(tags))
         result = await self.db_session.execute(_tags)

@@ -8,6 +8,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 import sqlalchemy
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from models.user import User
 
 
 class Tag(Base):
@@ -54,3 +58,5 @@ class Dish(Base):
     tags = relationship("Tag", secondary=dishes_tags, backref="dishes")
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+
+    user: Mapped["User"] = relationship(back_populates="dishes")
