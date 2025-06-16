@@ -80,7 +80,7 @@ class DishDAL:
         fats: float,
         carbohydrates: float,
         type: str,
-        tags: list[str] | None,
+        tags: list[Tag],
         user_id: int,
     ) -> Dishes:
         created_dish = Dishes(
@@ -189,7 +189,7 @@ class TagDAL:
     def __init__(self, db_session):
         self.db_session = db_session
 
-    async def get_tags_by_ids(self, tags: list[str]) -> list[str] | None:
+    async def get_tags_by_ids(self, tags: list[str]) -> list[Tag]:
         # Получаем теги по id
         _tags = select(Tag).where(Tag.name.in_(tags))
         result = await self.db_session.execute(_tags)

@@ -1,23 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from api.models import CreateDish, ShowDishes, PaginatedDishes, Pagination
+from api.models import CreateDish, ShowDishes, PaginatedDishes
 from db.dals import DishDAL, TagDAL
 from db.session import get_db
-from fastapi.exceptions import RequestValidationError
-from typing import Union
-from uuid import UUID
 import logging
 
 logger = logging.getLogger("uvicorn.error")
 dish_router = APIRouter()
-
-
-async def _get_dish_by_name_and_calories(name, calories, db):
-    async with db as session:
-        async with session.begin():
-            dish_dal = DishDAL(session)
-            create_dish = await dish_dal.get_dish_by_name_and_calories(name, calories)
-            return create_dish
 
 
 async def _create_dish(body: CreateDish, db) -> ShowDishes | None:
@@ -35,6 +24,8 @@ async def _create_dish(body: CreateDish, db) -> ShowDishes | None:
             tag_objs = TagDAL(session)
 
             tags = await tag_objs.get_tags_by_ids(body.tags) if body.tags else body.tags
+
+            logger.info("tag!!!!!", tags)
 
             dish = await dish_dal.create_dish(
                 name=body.name,
@@ -60,28 +51,6 @@ async def _create_dish(body: CreateDish, db) -> ShowDishes | None:
                 tags=[tag.name for tag in tags],
                 user_id=dish.user_id,
             )
-
-
-async def _get_dish_by_id(id: int, db) -> ShowDishes | None:
-    async with db as session:
-        async with session.begin():
-            dish_dal = DishDAL(session)
-            # Получаем теги по id
-            tag_objs = TagDAL(session)
-            dish = await dish_dal.get_dish_by_id(id=id)
-            if dish is not None:
-                return ShowDishes(
-                    id=dish.id,
-                    name=dish.name,
-                    description=dish.description,
-                    calories=dish.calories,
-                    proteins=dish.proteins,
-                    fats=dish.fats,
-                    carbohydrates=dish.carbohydrates,
-                    type=dish.type,
-                    created_at=dish.created_at,
-                    tags=dish.tags,
-                )
 
 
 async def _get_dishes_by_type(
@@ -115,6 +84,29 @@ async def create_user(
     if not dish:
         raise HTTPException(status_code=404, detail="Such dish already exist.")
     return dish
+
+
+# TODO удалить если не будет такого ф-ла
+# async def _get_dish_by_id(id: int, db) -> ShowDishes | None:
+#     async with db as session:
+#         async with session.begin():
+#             dish_dal = DishDAL(session)
+#             # Получаем теги по id
+#             tag_objs = TagDAL(session)
+#             dish = await dish_dal.get_dish_by_id(id=id)
+#             if dish is not None:
+#                 return ShowDishes(
+#                     id=dish.id,
+#                     name=dish.name,
+#                     description=dish.description,
+#                     calories=dish.calories,
+#                     proteins=dish.proteins,
+#                     fats=dish.fats,
+#                     carbohydrates=dish.carbohydrates,
+#                     type=dish.type,
+#                     created_at=dish.created_at,
+#                     tags=dish.tags,
+#                 )
 
 
 # @dish_router.get("/", response_model=ShowDishes)

@@ -27,16 +27,16 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    if exc.status_code == 404:
-        logger.error(f"Not Found error: {exc.detail}")
-        return JSONResponse(
-            status_code=404,
-            content={"detail": "The resource you are looking for could not be found."},
-        )
-    # Если ошибка не 404, просто возвращаем стандартный ответ для HTTPException
-    return await request.app.default_exception_handler(request, exc)
+# @app.exception_handler(HTTPException)
+# async def http_exception_handler(request: Request, exc: HTTPException):
+#     if exc.status_code == 404:
+#         logger.error(f"Not Found error: {exc.detail}")
+#         return JSONResponse(
+#             status_code=404,
+#             content={"detail": "The resource you are looking for could not be found."},
+#         )
+#     # Если ошибка не 404, просто возвращаем стандартный ответ для HTTPException
+#     return await request.app.default_exception_handler(request, exc)
 
 
 api_name = "/api"
