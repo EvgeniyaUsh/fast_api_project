@@ -2,7 +2,12 @@ from sqlalchemy import (
     String,
 )
 
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from models.dish import Dish
 
 
 class Base(DeclarativeBase):
@@ -17,4 +22,5 @@ class User(Base):
     surname: Mapped[str] = mapped_column(String(50))
     email: Mapped[str] = mapped_column(unique=True)
     is_active: Mapped[bool] = mapped_column(default=True)
-    hashed_password: Mapped[str]
+
+    dishes: Mapped[list["Dish"]] = relationship(back_populates="user")
