@@ -3,7 +3,7 @@ import math
 from sqlalchemy import and_, select, update, asc, desc, func
 from api.models import Pagination
 from db.models import User, Dishes, Tag
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 import logging
 
 logger = logging.getLogger("uvicorn.error")
@@ -126,52 +126,28 @@ class DishDAL:
         sort_column = SORTABLE_FIELDS.get(nutrition_sort, Dishes.calories)
         order_by = desc(sort_column) if sort_order == "DESCENDING" else asc(sort_column)
 
-        # # базовый select
-        # query = (
-        #     select(Dishes)
-        #     .options(joinedload(Dishes.tags))
-        #     .where(Dishes.type == type)
-        #     .order_by(order_by)
-        #     .offset(offset)
-        #     .limit(size)
-        # )
-
         query = (
             select(Dishes)
-            # .join(Dishes.tags)  # Добавляем join по тегам для фильтра
-            .options(joinedload(Dishes.tags))
+            .options(selectinload(Dishes.tags))
             .where(Dishes.type == type)
+            .order_by(order_by)
+            .offset(offset)
+            .limit(size)
         )
+
+        # Подсчёт общего количества блюд по запросу
+        count_query = select(Dishes.id).where(Dishes.type == type)
 
         if tags:
-            query = (
-                query.where(Dishes.tags.any(Tag.name.in_(tags)))
-                .order_by(order_by)
-                .offset(offset)
-                .limit(size)
-            )
+            query = query.where(Dishes.tags.any(Tag.name.in_(tags)))
 
-        else:
-            query = query.order_by(order_by).offset(offset).limit(size)
+            count_query = count_query.where(Dishes.tags.any(Tag.name.in_(tags)))
 
-        # query = (
-        #     select(Dishes)
-        #     # .join(Dishes.tags)  # Добавляем join по тегам для фильтра
-        #     .options(joinedload(Dishes.tags))
-        #     .where(Dishes.type == type)
-        #     .where(Dishes.tags.any(Tag.name.in_(tags)))  # фильтр по тегам
-        #     .order_by(order_by)
-        #     .offset(offset)
-        #     .limit(size)
-        # )
+        dishes_result = await self.db_session.scalars(query)
+        dishes = dishes_result.all()
 
-        # отдельный подсчёт общего количества
-        count_query = select(func.count()).select_from(
-            select(Dishes).where(Dishes.type == type).subquery()
-        )
-
-        query = await self.db_session.execute(query)
-        dishes = query.unique().scalars().all()
+        # Подсчёт общего количества
+        count_query = select(func.count()).select_from(count_query.subquery())
 
         count_result = await self.db_session.execute(count_query)
         total = count_result.scalar_one()

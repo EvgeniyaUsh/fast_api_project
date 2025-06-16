@@ -1,9 +1,9 @@
 from typing import Union
 import math
-from sqlalchemy import and_, select, update, asc, desc, func
-from dishes.schemas import CreateDish, ShowDishes, PaginatedDishes, Pagination
+from sqlalchemy import and_, select, asc, desc, func
+from dishes.schemas import Pagination
 from core.models import Dish, Tag
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 import logging
 
 logger = logging.getLogger("uvicorn.error")
@@ -72,34 +72,27 @@ class DishDAL:
         sort_column = SORTABLE_FIELDS.get(nutrition_sort, Dish.calories)
         order_by = desc(sort_column) if sort_order == "DESCENDING" else asc(sort_column)
 
-        # # базовый select
-        # query = (
-        #     select(Dish)
-        #     .options(joinedload(Dish.tags))
-        #     .where(Dish.type == type)
-        #     .order_by(order_by)
-        #     .offset(offset)
-        #     .limit(size)
-        # )
-
         query = (
             select(Dish)
-            # .join(Dish.tags)  # Добавляем join по тегам для фильтра
-            .options(joinedload(Dish.tags))
+            .options(selectinload(Dish.tags))
             .where(Dish.type == type)
-            .where(Dish.tags.any(Tag.name.in_(tags)))  # фильтр по тегам
             .order_by(order_by)
             .offset(offset)
             .limit(size)
         )
 
-        # отдельный подсчёт общего количества
-        count_query = select(func.count()).select_from(
-            select(Dish).where(Dish.type == type).subquery()
-        )
+        # Подсчёт общего количества блюд по запросу
+        count_query = select(Dish.id).where(Dish.type == type)
 
-        query = await self.db_session.execute(query)
-        dishes = query.unique().scalars().all()
+        if tags:
+            query = query.where(Dish.tags.any(Tag.name.in_(tags)))
+
+            count_query = count_query.where(Dish.tags.any(Tag.name.in_(tags)))
+
+        dishes_result = await self.db_session.scalars(query)
+        dishes = dishes_result.all()
+
+        count_query = select(func.count()).select_from(count_query.subquery())
 
         count_result = await self.db_session.execute(count_query)
         total = count_result.scalar_one()
