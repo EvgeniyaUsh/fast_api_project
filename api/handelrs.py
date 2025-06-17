@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.models import CreateUser, ShowUser, UpdateUser, UserID
+from api.models import CreateUser, ShowUser
 from db.dals import UserDAL
 from db.session import get_db
 
@@ -80,27 +80,27 @@ async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)) -> Sh
     return user
 
 
-@user_router.delete("/", response_model=UserID)
-async def delete_user(user_id: UUID, db: AsyncSession = Depends(get_db)) -> UserID:
-    result = await _delete_user(user_id, db)
-    if result is None:
-        raise HTTPException(
-            status_code=404, detail="User with id: {user_id} not found."
-        )
-    return UserID(user_id=user_id)
+# @user_router.delete("/", response_model=UserID)
+# async def delete_user(user_id: UUID, db: AsyncSession = Depends(get_db)) -> UserID:
+#     result = await _delete_user(user_id, db)
+#     if result is None:
+#         raise HTTPException(
+#             status_code=404, detail="User with id: {user_id} not found."
+#         )
+#     return UserID(user_id=user_id)
 
 
-@user_router.patch("/", response_model=UserID)
-async def update_user(
-    user_id: UUID, body: UpdateUser, db: AsyncSession = Depends(get_db)
-) -> UserID:
-    body = body.model_dump(exclude_none=True)
-    if not body:
-        raise HTTPException(status_code=404, detail="Fields for changes are empty.")
+# @user_router.patch("/", response_model=UserID)
+# async def update_user(
+#     user_id: UUID, body: UpdateUser, db: AsyncSession = Depends(get_db)
+# ) -> UserID:
+#     body = body.model_dump(exclude_none=True)
+#     if not body:
+#         raise HTTPException(status_code=404, detail="Fields for changes are empty.")
 
-    result = await _update_user(user_id, body, db)
-    if result is None:
-        raise HTTPException(
-            status_code=404, detail="User with id: {user_id} not found."
-        )
-    return UserID(user_id=user_id)
+#     result = await _update_user(user_id, body, db)
+#     if result is None:
+#         raise HTTPException(
+#             status_code=404, detail="User with id: {user_id} not found."
+#         )
+#     return UserID(user_id=user_id)

@@ -31,14 +31,14 @@ class UserDAL:
         if deleted_user_id is not None:
             return deleted_user_id[0]
 
-    async def update_user(self, user_id: int, **kwargs) -> int | None:
+    async def update_user(user_id: int, session, **kwargs) -> int | None:
         query = (
             update(User)
             .where(and_(User.id == user_id, User.is_active == True))
             .values(kwargs)
             .returning(User.id)
         )
-        result = await self.db_session.execute(query)
+        result = await session.execute(query)
         user_id = result.scalar_one_or_none()
         if user_id is not None:
             return user_id
