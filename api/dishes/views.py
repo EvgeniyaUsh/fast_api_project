@@ -1,117 +1,107 @@
-from typing import Union
-import math
-from sqlalchemy import and_, select, asc, desc, func
-from dishes.schemas import Pagination
-from core.models import Dish, Tag
-from sqlalchemy.orm import joinedload, selectinload
 import logging
+from core.models import db_helper
+
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+
+from api.dishes import crud
+from api.dishes.schemas import CreateDish, ShowDishes, PaginatedDishes
 
 logger = logging.getLogger("uvicorn.error")
 
-
-SORTABLE_FIELDS = {
-    "CALORIES": Dish.calories,
-    "PROTEINS": Dish.proteins,
-    "FATS": Dish.fats,
-    "CARBOHYDRATES": Dish.carbohydrates,
-}
+dish_router = APIRouter()
 
 
-class DishDAL:
-    def __init__(self, db_session):
-        self.db_session = db_session
+async def _create_dish(body: CreateDish, session) -> ShowDishes | None:
+    created_dish = await crud.get_dish_by_name_and_calories(
+        body.name, body.calories, session
+    )
 
-    async def create_dish(
-        self,
-        name: str,
-        description: str,
-        calories: float,
-        proteins: float,
-        fats: float,
-        carbohydrates: float,
-        type: str,
-        tags: list[str] | None,
-    ) -> Dish:
-        created_dish = Dish(
-            name=name,
-            description=description,
-            calories=calories,
-            proteins=proteins,
-            fats=fats,
-            carbohydrates=carbohydrates,
-            type=type,
-            tags=tags,
-        )
-        self.db_session.add(created_dish)
-        await self.db_session.flush()
-        logger.info(f"Created dish - {created_dish.name}")
-        return created_dish
+    if created_dish:
+        return
 
-    async def get_dish_by_id(self, id: int) -> Union[int, None]:
-        query = select(Dish).where(Dish.id == id)
+    # Получаем теги по id
+    tags = await crud.get_tags_by_ids(body.tags, session) if body.tags else body.tags
 
-        result = await self.db_session.execute(query)
-        dish = result.fetchone()
-        if dish:
-            return dish[0]
+    # logger.info("tag!!!!!", tags)
 
-    async def get_dish_by_name_and_calories(self, name, calories):
-        query = select(Dish).where(and_(Dish.name == name, Dish.calories == calories))
-        result = await self.db_session.execute(query)
-        dish = result.fetchone()
-        logger.info(f"{dish}")
-        if dish:
-            return True
-        return False
+    dish = await crud.create_dish(
+        name=body.name,
+        description=body.description,
+        calories=body.calories,
+        proteins=body.proteins,
+        fats=body.fats,
+        carbohydrates=body.carbohydrates,
+        type=body.type,
+        tags=tags,
+        user_id=body.user_id,
+        session=session,
+    )
+    return ShowDishes(
+        id=dish.id,
+        name=dish.name,
+        description=dish.description,
+        calories=dish.calories,
+        proteins=dish.proteins,
+        fats=dish.fats,
+        carbohydrates=dish.carbohydrates,
+        type=dish.type,
+        created_at=dish.created_at,
+        tags=[tag.name for tag in tags],
+        user_id=dish.user_id,
+    )
 
-    async def get_dishes_by_type(
-        self, type, nutrition_sort, tags, sort_order, page, size
-    ):
-        offset = (page - 1) * size
 
-        sort_column = SORTABLE_FIELDS.get(nutrition_sort, Dish.calories)
-        order_by = desc(sort_column) if sort_order == "DESCENDING" else asc(sort_column)
-
-        query = (
-            select(Dish)
-            .options(selectinload(Dish.tags))
-            .where(Dish.type == type)
-            .order_by(order_by)
-            .offset(offset)
-            .limit(size)
+async def _get_dishes_by_type(
+    type, nutrition_sort, tags, sort_order, page, page_size, session
+) -> PaginatedDishes | None:
+    pagination, dishes = await crud.get_dishes_by_type(
+        type, nutrition_sort, tags, sort_order, page, page_size, session
+    )
+    if dishes is not None:
+        return PaginatedDishes(
+            pagination=pagination,
+            dishes=[
+                ShowDishes.model_validate(
+                    {**d.__dict__, "tags": [tag.name for tag in d.tags]},
+                    from_attributes=True,
+                )
+                for d in dishes
+            ],
         )
 
-        # Подсчёт общего количества блюд по запросу
-        count_query = select(Dish.id).where(Dish.type == type)
 
-        if tags:
-            query = query.where(Dish.tags.any(Tag.name.in_(tags)))
-
-            count_query = count_query.where(Dish.tags.any(Tag.name.in_(tags)))
-
-        dishes_result = await self.db_session.scalars(query)
-        dishes = dishes_result.all()
-
-        count_query = select(func.count()).select_from(count_query.subquery())
-
-        count_result = await self.db_session.execute(count_query)
-        total = count_result.scalar_one()
-
-        total_pages = math.ceil(total / size)
-
-        pagination = Pagination(
-            currentPage=page, totalPages=total_pages, totalEntries=total
-        )
-
-        return pagination, dishes
+@dish_router.get("/", response_model=PaginatedDishes)
+async def get_dishes_by_type(
+    type: str,
+    nutrition_sort: str,
+    tags: list[str] = Query(default=[], style="form", explode=True),
+    sort_order: str = Query("asc", regex="^(ASCENDING|DESCENDING)$"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    session: AsyncSession = Depends(db_helper.scoped_session_dependency),
+) -> PaginatedDishes:
+    logger.info(
+        f"type, nutrition_sort, tags, sort_order, page, page_size, db - {type, nutrition_sort, tags, sort_order, page, page_size}"
+    )
+    dish = await _get_dishes_by_type(
+        type, nutrition_sort, tags, sort_order, page, page_size, session
+    )
+    logger.info(f"dishdish - {dish}")
+    if dish is None:
+        raise HTTPException(status_code=404, detail="Dish with id: {id} not found.")
+    return dish
 
 
-class TagDAL:
-    def __init__(self, db_session):
-        self.db_session = db_session
-
-    async def get_tags_by_ids(self, tags: list[str]) -> list[str] | None:
-        # Получаем теги по id
-        _tags = select(Tag).where(Tag.name.in_(tags))
-        result = await self.db_session.execute(_tags)
-        return result.scalars().all()
+@dish_router.post("/", response_model=ShowDishes)
+async def create_dish(
+    body: CreateDish,
+    session: AsyncSession = Depends(db_helper.scoped_session_dependency),
+) -> ShowDishes:
+    # try:
+    dish = await _create_dish(body, session)
+    if not dish:
+        raise HTTPException(status_code=404, detail="Such dish already exist.")
+    return dish

@@ -6,18 +6,15 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from typing import TYPE_CHECKING
 
+from core.models.base import Base
+
 if TYPE_CHECKING:
-    from models.dish import Dish
-
-
-class Base(DeclarativeBase):
-    pass
+    from .dish import Dish
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True)
     name: Mapped[str] = mapped_column(String(50))
     surname: Mapped[str] = mapped_column(String(50))
     email: Mapped[str] = mapped_column(unique=True)

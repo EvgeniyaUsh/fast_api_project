@@ -3,14 +3,16 @@ from fastapi import FastAPI, HTTPException
 from fastapi.routing import APIRouter
 
 
-from api.handelrs import user_router
 from api.login_handler import login_router
-from api.dish_handler import dish_router
+from user.views import user_router
+
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi import Request
 from fastapi import FastAPI
 import logging
+from core.config import settings
+from api import router as api_router
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -43,8 +45,8 @@ api_name = "/api"
 
 main_router = APIRouter()
 main_router.include_router(user_router, prefix="/user", tags=["user"])
-main_router.include_router(login_router, prefix="/login", tags=["login"])
-main_router.include_router(dish_router, prefix=f"{api_name}/dishes", tags=["dish"])
+main_router.include_router(api_router, prefix=settings.api_prefix, tags=["dish"])
+# main_router.include_router(login_router, prefix="/login", tags=["login"])
 # main_router.include_router(dish_router, prefix=f"{api_name}/tags", tags=["tag"])
 
 app.include_router(main_router)

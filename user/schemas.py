@@ -1,7 +1,6 @@
 import re
-from typing import Annotated, List
-from datetime import datetime
 
+from typing import Annotated
 from fastapi import HTTPException
 from pydantic import (
     BaseModel,
@@ -47,63 +46,6 @@ class CreateUser(BaseModel):
                 status_code=422, detail="Surname contains invalid characters."
             )
         return val
-
-
-class CreateTag(ORNModeModel):
-    name: str
-
-
-class ShowTag(ORNModeModel):
-    id: int
-    name: str
-
-    model_config = {"from_attributes": True}
-
-
-class CreateDish(BaseModel):
-    name: str
-    description: str
-    calories: float
-    proteins: float
-    fats: float
-    carbohydrates: float
-    type: str
-    tags: List[str] = []
-    user_id: int
-
-
-class ShowDishes(BaseModel):
-    id: int | None
-    name: Annotated[str, StringConstraints(min_length=2, max_length=50)]
-    description: str
-    calories: float
-    proteins: float
-    fats: float
-    carbohydrates: float
-    type: str
-    created_at: datetime
-    tags: List[str] = []
-    user_id: int
-
-    model_config = {"from_attributes": True}
-
-
-class Pagination(BaseModel):
-    currentPage: int
-    totalPages: int
-    totalEntries: int
-
-
-class PaginatedDishes(BaseModel):
-    pagination: Pagination
-    dishes: List[ShowDishes]
-
-    model_config = {"from_attributes": True}
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
 
 
 class UpdateUser(BaseModel):

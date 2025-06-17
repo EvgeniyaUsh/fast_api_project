@@ -76,7 +76,7 @@ async def _get_dishes_by_type(
 
 
 @dish_router.post("/", response_model=ShowDishes)
-async def create_user(
+async def create_dish(
     body: CreateDish, db: AsyncSession = Depends(get_db)
 ) -> ShowDishes:
     # try:

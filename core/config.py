@@ -1,10 +1,32 @@
+from pathlib import Path
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings
+
+BASE_DIR = Path(__file__).parent.parent
+
+
+class DbSettings(BaseModel):
+    url: str = "postgresql+asyncpg://postgres:postgres@0.0.0.0:5432/postgres"
+    # echo: bool = False
+    echo: bool = True
+
+
+class AuthJWT(BaseModel):
+    private_key_path: Path = BASE_DIR / "certs" / "jwt-private.pem"
+    public_key_path: Path = BASE_DIR / "certs" / "jwt-public.pem"
+    algorithm: str = "RS256"
+    access_token_expire_minutes: int = 15
+    # access_token_expire_minutes: int = 3
 
 
 class Settings(BaseSettings):
-    db_url = "postgresql+asyncpg://postgres:postgres@0.0.0.0:5432/postgres"
-    # db_echo = False
-    db_echo = True
+    api_prefix: str = "/api"
+
+    db: DbSettings = DbSettings()
+
+    auth_jwt: AuthJWT = AuthJWT()
+
+    # db_echo: bool = True
 
 
 settings = Settings()
