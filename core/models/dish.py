@@ -1,17 +1,11 @@
-from models.base import Base
-from sqlalchemy import (
-    Column,
-    Text,
-    Float,
-    Table,
-    ForeignKey,
-)
+from core.models.base import Base
+from sqlalchemy import Column, Text, Float, Table, ForeignKey, String
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 import sqlalchemy
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from models.user import User
+    from .user import User
 
 
 class Tag(Base):
@@ -35,15 +29,14 @@ dishes_tags = Table(
 class Dish(Base):
     __tablename__ = "dishes"
 
-    name: Mapped[str] = mapped_column(nullable=False)
-    description: Mapped[Text] = mapped_column(nullable=False)
+    name: Mapped[str] = mapped_column(String(100))
+    description: Mapped[str] = mapped_column(Text)
 
-    calories: Mapped[Float] = mapped_column(nullable=False)
-
-    proteins: Mapped[Float] = mapped_column(nullable=False)
-    fats: Mapped[Float] = mapped_column(nullable=False)
-    carbohydrates: Mapped[Float] = mapped_column(nullable=False)
-    type: Mapped[str] = mapped_column(nullable=False)
+    calories: Mapped[float] = mapped_column(Float(precision=2))
+    proteins: Mapped[float] = mapped_column(Float(precision=2))
+    fats: Mapped[float] = mapped_column(Float(precision=2))
+    carbohydrates: Mapped[float] = mapped_column(Float(precision=2))
+    type: Mapped[str]
 
     created_at = mapped_column(
         sqlalchemy.DateTime(timezone=True),
@@ -58,5 +51,4 @@ class Dish(Base):
     tags = relationship("Tag", secondary=dishes_tags, backref="dishes")
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-
-    user: Mapped["User"] = relationship(back_populates="dishes")
+    user: Mapped["User"] = relationship(back_populates="dishes") 

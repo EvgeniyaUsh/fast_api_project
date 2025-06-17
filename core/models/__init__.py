@@ -1,5 +1,6 @@
-__all__ = ("Base", "Dish", "Tag", "dishes_tags", "User")
+__all__ = ("Base", "Dish", "Tag", "dishes_tags", "User", "DatabaseHelper", "db_helper")
 
-from .base import Base
-from models.dish import Dish, Tag, dishes_tags
-from models.user import User
+from core.models.base import Base
+from core.models.dish import Dish, Tag, dishes_tags
+from core.models.user import User
+from core.models.session import db_helper, DatabaseHelper

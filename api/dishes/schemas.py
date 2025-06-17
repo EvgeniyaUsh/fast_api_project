@@ -17,10 +17,11 @@ class CreateDish(BaseModel):
     carbohydrates: float
     type: str
     tags: List[str] = []
+    user_id: int
 
 
 class ShowDishes(BaseModel):
-    id: int
+    id: int | None
     name: Annotated[str, StringConstraints(min_length=2, max_length=50)]
     description: str
     calories: float
@@ -30,6 +31,7 @@ class ShowDishes(BaseModel):
     type: str
     created_at: datetime
     tags: List[str] = []
+    user_id: int
 
     model_config = {"from_attributes": True}
 
