@@ -119,9 +119,9 @@ class DishDAL:
         return False
 
     async def get_dishes_by_type(
-        self, type, nutrition_sort, tags, sort_order, page, size
+        self, type, nutrition_sort, tags, sort_order, page, page_size
     ):
-        offset = (page - 1) * size
+        offset = (page - 1) * page_size
 
         sort_column = SORTABLE_FIELDS.get(nutrition_sort, Dishes.calories)
         order_by = desc(sort_column) if sort_order == "DESCENDING" else asc(sort_column)
@@ -132,7 +132,7 @@ class DishDAL:
             .where(Dishes.type == type)
             .order_by(order_by)
             .offset(offset)
-            .limit(size)
+            .limit(page_size)
         )
 
         # Подсчёт общего количества блюд по запросу
@@ -152,7 +152,7 @@ class DishDAL:
         count_result = await self.db_session.execute(count_query)
         total = count_result.scalar_one()
 
-        total_pages = math.ceil(total / size)
+        total_pages = math.ceil(total / page_size)
 
         pagination = Pagination(
             currentPage=page, totalPages=total_pages, totalEntries=total
