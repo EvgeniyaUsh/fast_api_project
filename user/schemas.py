@@ -68,3 +68,10 @@ class UpdateUser(BaseModel):
                 status_code=422, detail="Surname contains invalid characters."
             )
         return val
+
+
+class UserScheme(BaseModel):
+    name: str
+    password: bytes
+    email: EmailStr
+    is_active: bool

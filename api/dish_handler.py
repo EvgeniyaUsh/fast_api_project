@@ -5,6 +5,7 @@ from db.dals import DishDAL, TagDAL
 from db.session import get_db
 import logging
 
+
 logger = logging.getLogger("uvicorn.error")
 dish_router = APIRouter()
 
